@@ -1,0 +1,23 @@
+name: test matrix for installing the package on every version of python
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Install on os=${{ matrix.os }}), python=${{ matrix.python-version }},
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "windows-latest"]
+        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - run: python -m install_psbody.py
