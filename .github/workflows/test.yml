@@ -1,4 +1,4 @@
-name: test matrix for installing the package on every version of python
+name: installation test
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   test:
-    name: Install on os=${{ matrix.os }}), python=${{ matrix.python-version }},
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
