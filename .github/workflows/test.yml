@@ -6,16 +6,38 @@ on:
       - main
 
 jobs:
+  build:
+    name: build pyz
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: prepare python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: build .pyz
+        shell: bash -l {0}
+        run: python -m zipapp install_psbody
+      - name: upload result
+        uses: actions/upload-artifact@v2
+        with:
+          name: install_psbody
+          path: install_psbody.pyz
+
   install-test:
     runs-on: ${{ matrix.os }}
+    needs: build
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "windows-latest"]
         python-version: ["3.5", "3.6", "3.7", "3.8", "3.9"]
     steps:
-      - name: checkout code
-        uses: actions/checkout@v2
+      - name: download .pyz
+        uses: actions/download-artifact@v2
+        with:
+          name: install_psbody
       - name: prepare conda environment
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -23,4 +45,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: run script
         shell: bash -l {0}
-        run: python install_psbody.py --verbose
+        run: python install_psbody.pyz --verbose

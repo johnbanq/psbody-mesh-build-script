@@ -268,7 +268,7 @@ def inside_git_repository(repo_url, repo_hash=None, dir_name=".bqinstall.repo", 
     try:
         yield
     finally:
-        os.chdir("..")
+        os.chdir("../..")
         if cleanup:
             rmtree_git_repo(dir_name)
 
@@ -292,7 +292,7 @@ def rmtree_git_repo(dirpath: str):
 
 REPO_URL = "https://github.com/johnbanq/mesh.git"
 REPO_REVISION = "0d876727d5184161ed085bd3ef74967441b0a0e8"
-REPO_DIR = ".bqinstall.mpi-is.mesh"
+REPO_DIR = "../.bqinstall.mpi-is.mesh"
 
 
 @contextlib.contextmanager
