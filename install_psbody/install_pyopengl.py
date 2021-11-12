@@ -6,7 +6,7 @@ import os
 import subprocess
 
 
-from install_psbody.infra import log, run
+from infra import log, run
 
 
 def install_pyopengl():

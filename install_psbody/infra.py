@@ -89,6 +89,12 @@ def install_script_main(
         logging.basicConfig(level=logging.INFO)
 
     script_path = os.path.abspath(__file__)
+    segments = os.path.normpath(script_path).split(os.path.sep)
+    has_pyz = any([s.endswith(".pyz") for s in segments])
+    if has_pyz:
+        while not segments[-1].endswith(".pyz"):
+            segments.pop()
+        script_path = os.path.join(*segments)
 
     # main #
     if args.environment == "prepare_environment":
@@ -267,7 +273,7 @@ def inside_git_repository(repo_url, repo_hash=None, dir_name=".bqinstall.repo", 
     try:
         yield
     finally:
-        os.chdir("../..")
+        os.chdir("..")
         if cleanup:
             rmtree_git_repo(dir_name)
 

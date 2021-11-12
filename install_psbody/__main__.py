@@ -4,8 +4,8 @@ import os
 import shutil
 
 
-from install_psbody.infra import log, do_not_cleanup, install_script_main, run, inside_git_repository, with_upgraded_pip
-from install_psbody.install_pyopengl import install_pyopengl
+from infra import log, do_not_cleanup, install_script_main, run, inside_git_repository, with_upgraded_pip
+from install_pyopengl import install_pyopengl
 
 
 # preparing environment #
@@ -13,7 +13,7 @@ from install_psbody.install_pyopengl import install_pyopengl
 
 REPO_URL = "https://github.com/johnbanq/mesh.git"
 REPO_REVISION = "0d876727d5184161ed085bd3ef74967441b0a0e8"
-REPO_DIR = "../.bqinstall.mpi-is.mesh"
+REPO_DIR = ".bqinstall.mpi-is.mesh"
 
 
 @contextlib.contextmanager
