@@ -23,23 +23,15 @@ def psbody_prepare_environment():
             repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
             cleanup=not get_do_not_cleanup()
     ):
-        with install_compiling_dependencies():
-            install_boost()
-            install_pyopengl()
-            yield
+        install_cxx_compiler()
+        install_boost()
+        install_pyopengl()
+        yield
 
 
-@contextlib.contextmanager
-def install_compiling_dependencies():
-    # note: we obviously can't remove setuptools as python depeneds on it
-    # note: we also can't remove cxx-compiler as it causes regression
-    # so no teardown logic
-    dependencies = ["cxx-compiler", "setuptools"]
-
-    log.info("installing compiling dependencies: %s", str(dependencies))
-    run(["conda", "install", "-y", "-c", "conda-forge", *dependencies])
-
-    yield
+def install_cxx_compiler():
+    # note: this has to be permanently installed as uninstalling it caused an regression
+    run(["conda", "install", "-y", "-c", "conda-forge", "cxx-compiler"])
 
 
 def install_boost():
