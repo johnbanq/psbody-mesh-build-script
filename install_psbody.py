@@ -53,8 +53,8 @@ def check_is_in_conda_environment():
 
 @contextlib.contextmanager
 def install_building_dependencies():
-    dependencies = ["cxx-compiler", "setuptools"]
-    dependencies_to_uninstall = list(set(dependencies) - {"setuptools"})
+    dependencies = ["cxx-compiler", "setuptools", "pthread-stubs"]
+    dependencies_to_uninstall = list(set(dependencies) - {"setuptools", "pthread-stubs"})
 
     log.info("installing compiling dependencies: %s", str(dependencies))
     run(["conda", "install", "-y", "-c", "conda-forge", *dependencies])
