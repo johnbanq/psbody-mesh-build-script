@@ -513,7 +513,7 @@ def with_upgraded_pip(should_upgrade = None):
                 # to let anaconda uninstall for us
                 lst.insert(-2, "--user")
             return lst
-        run(enhance_on_win(["pip", "install", "--upgrade", "pip"]))
+        run(enhance_on_win(["python", "-m", "pip", "install", "--upgrade", "pip"]))
         try:
             yield
         finally:
