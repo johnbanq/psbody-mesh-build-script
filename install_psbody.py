@@ -355,7 +355,12 @@ def with_upgraded_pip():
 
     log.debug("current pip version is %s, upgrading", version)
 
-    run(["pip", "install", "--upgrade", "pip"])
+    def enhance_on_win(lst):
+        if os.name == "nt":
+            # to let anaconda uninstall for us
+            lst.insert(-2, "--user")
+        return lst
+    run(enhance_on_win(["pip", "install", "--upgrade", "pip"]))
     try:
         yield
     finally:
@@ -371,6 +376,10 @@ def psbody_validate_build():
             repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
             cleanup=not do_not_cleanup
     ):
+        # fix the stupid CRLF issue
+        shutil.rmtree("data")
+        run(["git", "checkout", "data"])
+
         log.info("running tests")
         if os.name == "nt":
             run(["python", "-m", "unittest", "-v"])
