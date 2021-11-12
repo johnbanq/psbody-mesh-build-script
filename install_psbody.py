@@ -514,6 +514,7 @@ def with_upgraded_pip(should_upgrade = None):
             run(["pip", "install", "pip==%s" % version])
     else:
         log.debug("pip upgrade skipped")
+        yield
 
 
 # run tests #
