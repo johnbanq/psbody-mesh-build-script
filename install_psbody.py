@@ -133,15 +133,17 @@ def run_with_reactivated_environment(env_name: str, commands: List[str]):
         with open(script_name, "w") as f:
             log.debug("writing trampoline script: %s", f.name)
 
+            script = "conda activate %s" % env_name
             if os.name == "nt":
-                script = "@conda activate %s" % env_name
-            else:
-                script = "conda activate %s" % env_name
+                script = "@" + script + os.linesep + "if errorlevel 1 exit 1"
 
             log.debug("activate script: %s", script)
             f.write(script + os.linesep)
 
             command = " ".join(commands)
+            if os.name == "nt":
+                command = command + os.linesep + "if errorlevel 1 exit 1"
+
             log.debug("command: %s", command)
             f.write(command + os.linesep)
 
