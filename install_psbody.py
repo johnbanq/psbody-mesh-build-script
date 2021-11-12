@@ -331,6 +331,7 @@ def install_pyopengl():
         log.info("running windows, installing from https://www.lfd.uci.edu/~gohlke/pythonlibs/")
         if get_pyopengl_version():
             log.warning("pyopengl is already installed in this environment, skipping")
+            log.warning("note: MeshViewer will not work if this is not the one in the link above!")
             return
 
         version, (gl_link, accel_link) = fetch_version_and_links()
