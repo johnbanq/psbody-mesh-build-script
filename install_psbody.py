@@ -450,7 +450,12 @@ def psbody_execute_build():
     #     but need the old pip to run the setup.py
     #     hence the setup.py setup is out of the with scope
     log.info("installing python dependencies")
-    with with_upgraded_pip():
+
+    def only_upgrade_pre_20(version):
+        major, minor, patch = version.split('.')
+        return int(major) < 20
+
+    with with_upgraded_pip(should_upgrade=only_upgrade_pre_20):
         run([
             "pip", "install",
             "--upgrade",
@@ -473,7 +478,11 @@ def psbody_execute_build():
 
 
 @contextlib.contextmanager
-def with_upgraded_pip():
+def with_upgraded_pip(should_upgrade = None):
+    """
+    invokes should_upgrade(version string), if returns True, then run, otherwise skip
+    default is always upgrade
+    """
     result = run(["pip", "list"], stdout=subprocess.PIPE)
     matches = [m for m in result.stdout.decode("UTF-8").splitlines()]
     matches = [re.match(r"pip +(?P<version>\S+\.\S+\.\S+)", m) for m in matches]
@@ -482,19 +491,23 @@ def with_upgraded_pip():
         "there must be exactly one pip in listed installed packages, found %i!" % len(matches)
     version = matches[0].group("version").strip()
 
-    log.debug("current pip version is %s, upgrading", version)
+    should_upgrade_unspecified = not should_upgrade
+    if should_upgrade_unspecified or should_upgrade(version):
+        log.debug("current pip version is %s, upgrading", version)
 
-    def enhance_on_win(lst):
-        if os.name == "nt":
-            # to let anaconda uninstall for us
-            lst.insert(-2, "--user")
-        return lst
-    run(enhance_on_win(["pip", "install", "--upgrade", "pip"]))
-    try:
-        yield
-    finally:
-        log.debug("restoring pip version to %s", version)
-        run(["pip", "install", "pip==%s" % version])
+        def enhance_on_win(lst):
+            if os.name == "nt":
+                # to let anaconda uninstall for us
+                lst.insert(-2, "--user")
+            return lst
+        run(enhance_on_win(["pip", "install", "--upgrade", "pip"]))
+        try:
+            yield
+        finally:
+            log.debug("restoring pip version to %s", version)
+            run(["pip", "install", "pip==%s" % version])
+    else:
+        log.debug("pip upgrade skipped")
 
 
 # run tests #
