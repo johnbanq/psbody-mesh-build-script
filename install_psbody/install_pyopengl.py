@@ -18,7 +18,8 @@ def install_pyopengl():
             log.warning("note: MeshViewer will not work if this is not the one in the link above!")
             return
 
-        version, (gl_link, accel_link) = fetch_version_and_links()
+        version, (gl_link, accel_link) = choose_pyopengl_version_and_get_download_link()
+
         log.info("installing version %s", version)
         run(["pip", "install", gl_link])
         run(["pip", "install", accel_link])
@@ -26,7 +27,7 @@ def install_pyopengl():
         run(["pip", "install", "pyopengl"])
 
 
-def fetch_version_and_links():
+def choose_pyopengl_version_and_get_download_link():
     """
     returns the selected version and links (version, (pyopengl_link), (accelerate_link))
     :rtype: Tuple[str, Tuple[str, str]]
@@ -74,12 +75,14 @@ def fetch_version_and_links():
 
     log.debug("selected version: %s, fullnames: %s", str(selected_version), str(selected_fullnames))
 
+    # compute download link
     if "‑cp36‑" in selected_fullnames[0]:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/cp36/%s"
     elif "‑cp35‑" in selected_fullnames[0]:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/cp35/%s"
     else:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s"
+
     return (
         version,
         (
@@ -119,7 +122,7 @@ def get_pyopengl_version():
 
 def get_compatible_tags():
     try:
-        # pip 10 compatibility
+        # for pip 10
         from pip._internal.pep425tags import get_supported
         return get_supported()
     except ImportError:
