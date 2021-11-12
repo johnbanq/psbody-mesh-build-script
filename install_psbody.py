@@ -172,7 +172,8 @@ def parse_conda_info(key: str):
 
 
 TRAMPOLINE_SCRIPT_WINDOWS = """\
-call %(activate_script_path)s %(environment)s
+@echo off
+@call %(activate_script_path)s %(environment)s
 if errorlevel 1 exit 1
 
 %(command)s
@@ -213,10 +214,10 @@ def run_with_reactivated_environment(env_name: str, commands: List[str], cleanup
         # run script #
         log.debug("jumping into the trampoline, wee!")
         if os.name == "nt":
-            run([script_name])
+            run([script_name], stdout=None, stderr=None)  # force stdout & stderr
         else:
             run(["chmod", "+x", script_name])
-            run(["./" + script_name])
+            run(["./" + script_name], stdout=None, stderr=None)  # force stdout & stderr
     finally:
         if cleanup and os.path.exists(script_name):
             os.unlink(script_name)
@@ -228,8 +229,10 @@ def run(*args, **kwargs):
     will remain silent until something when wrong
     """
     try:
-        pipe_or_not = None if log.getEffectiveLevel() == logging.DEBUG else subprocess.PIPE
-        subprocess.run(*args, **kwargs, check=True, stderr=pipe_or_not, stdout=pipe_or_not)
+        normal_pipe_or_not = None if log.getEffectiveLevel() == logging.DEBUG else subprocess.PIPE
+        kwargs["stdout"] = kwargs.get("stdout", normal_pipe_or_not)
+        kwargs["stderr"] = kwargs.get("stderr", normal_pipe_or_not)
+        subprocess.run(*args, **kwargs, check=True)
 
     except subprocess.CalledProcessError as e:
         log.error("error while executing: %s", str(e.args))
