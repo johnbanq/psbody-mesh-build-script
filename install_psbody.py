@@ -229,6 +229,11 @@ def run(*args, **kwargs):
     will remain silent until something when wrong
     """
     try:
+        # enable shell on windows
+        if os.name == "nt":
+            kwargs["shell"] = True
+
+        # override-able stdout/stderr config
         normal_pipe_or_not = None if log.getEffectiveLevel() == logging.DEBUG else subprocess.PIPE
         kwargs["stdout"] = kwargs.get("stdout", normal_pipe_or_not)
         kwargs["stderr"] = kwargs.get("stderr", normal_pipe_or_not)
