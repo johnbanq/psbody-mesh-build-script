@@ -35,8 +35,8 @@ def run(*args, **kwargs):
 
     except subprocess.CalledProcessError as e:
         log.error("error while executing: %s", str(e.args))
-        log.error("stdout: \n%s", e.stdout.decode("UTF-8"))
-        log.error("stderr: \n%s", e.stderr.decode("UTF-8"))
+        log.error("stdout: \n%s", e.stdout.decode("UTF-8") if e.stdout else "None")
+        log.error("stderr: \n%s", e.stderr.decode("UTF-8") if e.stderr else "None")
         raise e
 
 
