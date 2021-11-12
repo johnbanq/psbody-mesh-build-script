@@ -53,8 +53,8 @@ def check_is_in_conda_environment():
 
 @contextlib.contextmanager
 def install_building_dependencies():
-    dependencies = ["cxx-compiler", "setuptools", "pthread-stubs"]
-    dependencies_to_uninstall = list(set(dependencies) - {"setuptools", "pthread-stubs"})
+    dependencies = ["cxx-compiler", "setuptools", "libgomp"]
+    dependencies_to_uninstall = list(set(dependencies) - {"setuptools", "libgomp"})
 
     log.info("installing compiling dependencies: %s", str(dependencies))
     run(["conda", "install", "-y", "-c", "conda-forge", *dependencies])
@@ -62,7 +62,7 @@ def install_building_dependencies():
         yield
     finally:
         pass
-        # note: it appears that removing cxx-compiler will break the install, so we had to keep it ¯\_(ツ)_/¯
+        # note: it appears that removing cxx-compiler will break the install, so we had to keep it *shrug*
         # if not do_not_cleanup:
         #     log.info("removing compiling dependencies: %s", str(dependencies_to_uninstall))
         #     run(["conda", "uninstall", "-y", "-c", "conda-forge", *dependencies_to_uninstall])
