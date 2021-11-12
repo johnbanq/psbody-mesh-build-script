@@ -432,21 +432,26 @@ def get_pyopengl_version():
 
 
 def get_compatible_tags():
-    result = run(["python", "-m", "pip", "debug", "--verbose"], stdout=subprocess.PIPE)
+    try:
+        # pip 10 compatibility
+        from pip._internal.pep425tags import get_supported
+        return get_supported()
+    except ImportError:
+        result = run(["python", "-m", "pip", "debug", "--verbose"], stdout=subprocess.PIPE)
 
-    lines = result.stdout.decode("UTF-8").splitlines()
-    while not lines[0].startswith("Compatible tags:"):
+        lines = result.stdout.decode("UTF-8").splitlines()
+        while not lines[0].startswith("Compatible tags:"):
+            lines.pop(0)
+        assert len(lines) > 1, "there must be at least 1 compatible tags!"
         lines.pop(0)
-    assert len(lines) > 1, "there must be at least 1 compatible tags!"
-    lines.pop(0)
 
-    result = []
-    for line in lines:
-        line = line.strip()
-        if line:
-            result.append(tuple(line.split("-")))
+        result = []
+        for line in lines:
+            line = line.strip()
+            if line:
+                result.append(tuple(line.split("-")))
 
-    return result
+        return result
 
 # execute build #
 
