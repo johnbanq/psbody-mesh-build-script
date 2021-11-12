@@ -6,12 +6,12 @@ on:
       - main
 
 jobs:
-  test:
+  test-linux:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "windows-latest"]
+        os: ["ubuntu-latest"]
         python-version: ["3.5", "3.6", "3.7", "3.8", "3.9"]
     steps:
       - name: checkout code
@@ -23,4 +23,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: run script
         shell: bash -l {0}
+        run: python install_psbody.py --verbose
+  test-windows:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-latest"]
+        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9"]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: prepare conda environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: run script
+        shell: cmd /C CALL {0}
         run: python install_psbody.py --verbose
