@@ -185,7 +185,7 @@ def test_package():
 def stage1():
     check_is_in_conda_environment()
     with install_compiling_dependencies():
-        log.info("compile dependencies ready, entering stage2 with updated conda environment")
+        log.info("compilation dependencies ready, entering stage2 with updated conda environment")
         run_after_conda_activate(["python", *sys.argv, "--stage2"])
 
 
