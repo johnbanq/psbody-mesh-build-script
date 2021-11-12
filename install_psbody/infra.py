@@ -26,6 +26,7 @@ yes_everything = False
 
 
 def get_do_not_cleanup():
+    # TODO: do it the right way
     return do_not_cleanup
 
 
@@ -147,6 +148,9 @@ def detect_conda_environment():
 
 
 def detect_conda_activate_script():
+    """
+    detect the path to conda activate script, used in trampoline to activate environment
+    """
     log.debug("detecting conda activation script location")
 
     base_folder = parse_conda_info("base environment")
@@ -165,7 +169,7 @@ def detect_conda_activate_script():
 
 def parse_conda_info(key: str):
     """
-    parse value of a key in output of conda info
+    parse value of a key in the output of conda info
     :rtype: str
     """
     try:
@@ -191,6 +195,7 @@ if errorlevel 1 exit 1
 %(command)s
 if errorlevel 1 exit 1
 """
+
 TRAMPOLINE_SCRIPT_BASH = """\
 #!/usr/bin/env bash
 source %(activate_script_path)s %(environment)s
@@ -238,7 +243,7 @@ def run(*args, **kwargs):
     utils for running subprocess.run,
     will remain silent until something when wrong
     note: will auto enable shell on windows as most commands seems
-    to require it to function
+    to require it to function on Github CI
     """
     try:
         # enable shell on windows
@@ -300,7 +305,7 @@ def rmtree_git_repo(dirpath: str):
 def upgrade_pip():
     def enhance_on_win(lst):
         if os.name == "nt":
-            # to let anaconda uninstall for us
+            # make windows happy and stop blocking us
             lst.insert(-2, "--user")
         return lst
 
