@@ -117,7 +117,7 @@ def with_upgraded_pip():
         run(["pip", "install", "pip==%s" % version])
 
 
-def build_install_test_package():
+def build_install_package():
     """
     note:
         because for mysterious reason, we need latest pip to install dependencies,
@@ -144,17 +144,22 @@ def build_install_test_package():
         "."
     ])
 
+
+def test_package():
     log.info("running tests")
     run(["make", "tests"])
 
 
 def main():
     check_is_in_conda_environment()
+
     with install_building_dependencies():
         install_boost()
         install_pyopengl()
         with download_and_cd_into_repo():
-            build_install_test_package()
+            build_install_package()
+
+    test_package()
 
     log.info("installation complete!")
 
