@@ -36,6 +36,11 @@ def install_script_main(
     * a function: execute_build
     * a function: validate_build
 
+    ideally, you should:
+    * put git clone & dependency install in prepare_environment
+    * put build logic in execute_build
+    * put tests in validate_build
+
     the build process is structured as follows:
     * detect conda environment
     * run prepare_environment()
@@ -75,14 +80,28 @@ def install_script_main(
     else:
         logging.basicConfig(level=logging.INFO)
 
+    script_path = os.path.abspath(__file__)
+
     # main #
     if args.environment == "prepare_environment":
         env_name = detect_conda_environment()
         log.debug("setting up prepare_environment")
         with prepare_environment():
-            run_with_reactivated_environment(env_name, ["python", *sys.argv, "--environment", "execute_build"])
+            run_with_reactivated_environment(
+                env_name, [
+                    "python", script_path,
+                    *sys.argv[1:], "--environment", "execute_build"
+                ],
+                cleanup=not do_not_cleanup
+            )
             log.debug("tearing down prepare_environment")
-        run_with_reactivated_environment(env_name, ["python", *sys.argv, "--environment", "validate_build"])
+        run_with_reactivated_environment(
+            env_name, [
+                "python", script_path,
+                *sys.argv[1:], "--environment", "validate_build"
+            ],
+            cleanup=not do_not_cleanup
+        )
     elif args.environment == "execute_build":
         log.debug("running execute_build")
         execute_build()
@@ -97,18 +116,7 @@ def detect_conda_environment():
     """
     log.info("detecting conda environment")
 
-    try:
-        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True)
-    except subprocess.CalledProcessError as e:
-        log.fatal("could not run conda info, do you have conda installed at all?")
-        raise e
-
-    lines = result.stdout.decode(encoding=sys.getdefaultencoding()).splitlines()
-    lines = [re.match("active environment : (?P<environment>.*)", line.strip()) for line in lines]
-    lines = [line for line in lines if line]
-    assert len(lines) == 1, "exactly 1 active environment line expected, but got %i !" % len(lines)
-    env_name = lines[0].group("environment").strip()
-
+    env_name = parse_conda_info("active environment")
     log.debug("detected environment name: %s", env_name)
 
     if env_name == "None":
@@ -119,7 +127,60 @@ def detect_conda_environment():
         return env_name
 
 
-def run_with_reactivated_environment(env_name: str, commands: List[str]):
+def detect_conda_activate_script():
+    log.debug("detecting conda activation script location")
+
+    base_folder = parse_conda_info("base environment")
+    if base_folder.endswith(")"):
+        base_folder = base_folder[:base_folder.rfind("(")]
+    base_folder = base_folder.strip()
+
+    if os.name != "nt":
+        script = os.path.join(base_folder, "bin", "activate")
+    else:
+        script = os.path.join(base_folder, "Scripts", "activate.bat")
+    log.debug("detected: %s", script)
+
+    return script
+
+
+def parse_conda_info(key: str):
+    """
+    parse value of a key in output of conda info
+    :rtype: str
+    """
+    try:
+        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True)
+    except subprocess.CalledProcessError as e:
+        log.fatal("could not run conda info, do you have conda installed at all?")
+        raise e
+
+    lines = result.stdout.decode(encoding=sys.getdefaultencoding()).splitlines()
+    lines = [re.match("%s +: +(?P<value>.*)" % key, line.strip()) for line in lines]
+    lines = [line for line in lines if line]
+    assert len(lines) == 1, "exactly 1 %s line expected, but got %i !" % (key, len(lines))
+    value = lines[0].group("value").strip()
+
+    return value
+
+
+TRAMPOLINE_SCRIPT_WINDOWS = """\
+call %(activate_script_path)s %(environment)s
+if errorlevel 1 exit 1
+
+%(command)s
+if errorlevel 1 exit 1
+"""
+
+
+TRAMPOLINE_SCRIPT_BASH = """\
+#!/usr/bin/env bash
+source %(activate_script_path)s %(environment)s
+%(command)s
+"""
+
+
+def run_with_reactivated_environment(env_name: str, commands: List[str], cleanup=True):
     """
     run with re-activated conda environment
     """
@@ -132,20 +193,15 @@ def run_with_reactivated_environment(env_name: str, commands: List[str]):
         # write script #
         with open(script_name, "w") as f:
             log.debug("writing trampoline script: %s", f.name)
-
-            script = "conda activate %s" % env_name
-            if os.name == "nt":
-                script = "@" + script + os.linesep + "if errorlevel 1 exit 1"
-
-            log.debug("activate script: %s", script)
-            f.write(script + os.linesep)
-
-            command = " ".join(commands)
-            if os.name == "nt":
-                command = command + os.linesep + "if errorlevel 1 exit 1"
-
-            log.debug("command: %s", command)
-            f.write(command + os.linesep)
+            template = TRAMPOLINE_SCRIPT_WINDOWS if os.name == "nt" else TRAMPOLINE_SCRIPT_BASH
+            template = template % {
+                "activate_script_path": detect_conda_activate_script(),
+                "environment": env_name,
+                "command": (" ".join(commands))
+            }
+            for line in template.splitlines():
+                line = line.strip()
+                f.write(line+os.linesep)
 
         # run script #
         log.debug("jumping into the trampoline, wee!")
@@ -155,7 +211,7 @@ def run_with_reactivated_environment(env_name: str, commands: List[str]):
             run(["chmod", "+x", script_name])
             run(["./" + script_name])
     finally:
-        if not do_not_cleanup and os.path.exists(script_name):
+        if cleanup and os.path.exists(script_name):
             os.unlink(script_name)
 
 
@@ -166,7 +222,7 @@ def run(*args, **kwargs):
     """
     try:
         pipe_or_not = None if log.getEffectiveLevel() == logging.DEBUG else subprocess.PIPE
-        subprocess.run(*args, **kwargs, check=True, stderr=pipe_or_not, stdout=pipe_or_not, shell=True)
+        subprocess.run(*args, **kwargs, check=True, stderr=pipe_or_not, stdout=pipe_or_not)
 
     except subprocess.CalledProcessError as e:
         log.error("error while executing: %s", str(e.args))
@@ -176,9 +232,10 @@ def run(*args, **kwargs):
 
 
 @contextlib.contextmanager
-def inside_git_repository(repo_url, repo_hash=None, dir_name=".bqinstall.repo"):
+def inside_git_repository(repo_url, repo_hash=None, dir_name=".bqinstall.repo", cleanup=True):
     """
     clone a git repo into the specified directory and cd into it, then cleanup on exit
+    :type cleanup: bool
     :type dir_name: str
     :type repo_url: str
     :type repo_hash: str | None
@@ -191,10 +248,12 @@ def inside_git_repository(repo_url, repo_hash=None, dir_name=".bqinstall.repo"):
     os.chdir(dir_name)
     run(["git", "checkout", repo_hash if repo_hash else ""])
 
-    yield
-
-    os.chdir("..")
-    rmtree_git_repo(dir_name)
+    try:
+        yield
+    finally:
+        os.chdir("..")
+        if cleanup:
+            rmtree_git_repo(dir_name)
 
 
 def rmtree_git_repo(dirpath: str):
@@ -221,7 +280,10 @@ REPO_DIR = ".bqinstall.mpi-is.mesh"
 
 @contextlib.contextmanager
 def psbody_prepare_environment():
-    with inside_git_repository(repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR):
+    with inside_git_repository(
+            repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
+            cleanup=not do_not_cleanup
+    ):
         with install_compiling_dependencies():
             install_boost()
             install_pyopengl()
@@ -305,7 +367,10 @@ def with_upgraded_pip():
 
 
 def psbody_validate_build():
-    with inside_git_repository(repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR):
+    with inside_git_repository(
+            repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
+            cleanup=not do_not_cleanup
+    ):
         log.info("running tests")
         if os.name == "nt":
             run(["python", "-m", "unittest", "-v"])
