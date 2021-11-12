@@ -157,7 +157,7 @@ def parse_conda_info(key: str):
     :rtype: str
     """
     try:
-        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True)
+        result = run(["conda", "info"], stdout=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         log.fatal("could not run conda info, do you have conda installed?")
         raise e
@@ -227,6 +227,8 @@ def run(*args, **kwargs):
     """
     utils for running subprocess.run,
     will remain silent until something when wrong
+    note: will auto enable shell on windows as most commands seems
+    to require it to function
     """
     try:
         # enable shell on windows
@@ -237,7 +239,7 @@ def run(*args, **kwargs):
         normal_pipe_or_not = None if log.getEffectiveLevel() == logging.DEBUG else subprocess.PIPE
         kwargs["stdout"] = kwargs.get("stdout", normal_pipe_or_not)
         kwargs["stderr"] = kwargs.get("stderr", normal_pipe_or_not)
-        subprocess.run(*args, **kwargs, check=True)
+        return subprocess.run(*args, **kwargs, check=True)
 
     except subprocess.CalledProcessError as e:
         log.error("error while executing: %s", str(e.args))
@@ -424,7 +426,7 @@ def get_pyopengl_version():
 
 
 def get_compatible_tags():
-    result = subprocess.run(["python", "-m", "pip", "debug", "--verbose"], stdout=subprocess.PIPE, check=True)
+    result = run(["python", "-m", "pip", "debug", "--verbose"], stdout=subprocess.PIPE)
 
     lines = result.stdout.decode("UTF-8").splitlines()
     while not lines[0].startswith("Compatible tags:"):
@@ -472,7 +474,7 @@ def psbody_execute_build():
 
 @contextlib.contextmanager
 def with_upgraded_pip():
-    result = subprocess.run(["pip", "list"], stdout=subprocess.PIPE, check=True)
+    result = run(["pip", "list"], stdout=subprocess.PIPE)
     matches = [m for m in result.stdout.decode("UTF-8").splitlines()]
     matches = [re.match(r"pip +(?P<version>\S+\.\S+\.\S+)", m) for m in matches]
     matches = [m for m in matches if m]
