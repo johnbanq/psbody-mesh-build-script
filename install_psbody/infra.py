@@ -25,6 +25,10 @@ yes_everything = False
 # functions #
 
 
+def get_do_not_cleanup():
+    return do_not_cleanup
+
+
 def install_script_main(
         package_name,
         prepare_environment,
@@ -92,9 +96,10 @@ def install_script_main(
     segments = os.path.normpath(script_path).split(os.path.sep)
     has_pyz = any([s.endswith(".pyz") for s in segments])
     if has_pyz:
+        # because os.path treats C:// as 'C:', '', concat segments will lead to wrong path!
         while not segments[-1].endswith(".pyz"):
+            script_path = os.path.dirname(script_path)
             segments.pop()
-        script_path = os.path.join(*segments)
 
     # main #
     if args.environment == "prepare_environment":

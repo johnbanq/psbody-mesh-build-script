@@ -4,7 +4,8 @@ import os
 import shutil
 
 
-from infra import log, do_not_cleanup, install_script_main, run, inside_git_repository, with_upgraded_pip
+from infra import log, install_script_main, run, inside_git_repository, with_upgraded_pip, \
+    get_do_not_cleanup
 from install_pyopengl import install_pyopengl
 
 
@@ -20,7 +21,7 @@ REPO_DIR = ".bqinstall.mpi-is.mesh"
 def psbody_prepare_environment():
     with inside_git_repository(
             repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
-            cleanup=not do_not_cleanup
+            cleanup=not get_do_not_cleanup()
     ):
         with install_compiling_dependencies():
             install_boost()
@@ -84,7 +85,7 @@ def psbody_validate_build():
     log.info("running tests")
     with inside_git_repository(
             repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
-            cleanup=not do_not_cleanup
+            cleanup=not get_do_not_cleanup()
     ):
         # fix the stupid CRLF issue
         shutil.rmtree("data")
