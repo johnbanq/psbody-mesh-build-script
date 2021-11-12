@@ -21,9 +21,6 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      - name: see phtread
-        shell: bash -l {0}
-        run: ldconfig -p | grep pthread
       - name: run script
         shell: bash -l {0}
         run: python install_psbody.py --verbose
