@@ -297,8 +297,7 @@ def rmtree_git_repo(dirpath: str):
     shutil.rmtree(dirpath, onerror=readonly_handler)
 
 
-@contextlib.contextmanager
-def with_upgraded_pip():
+def upgrade_pip():
     def enhance_on_win(lst):
         if os.name == "nt":
             # to let anaconda uninstall for us
@@ -306,5 +305,3 @@ def with_upgraded_pip():
         return lst
 
     run(enhance_on_win(["python", "-m", "pip", "install", "--upgrade", "pip"]))
-
-    yield

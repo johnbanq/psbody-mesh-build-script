@@ -4,7 +4,7 @@ import os
 import shutil
 
 
-from infra import log, install_script_main, run, inside_git_repository, with_upgraded_pip, \
+from infra import log, install_script_main, run, inside_git_repository, upgrade_pip, \
     get_do_not_cleanup
 from install_pyopengl import install_pyopengl
 
@@ -51,17 +51,14 @@ def install_boost():
 
 
 def psbody_execute_build():
-    # note: because of mysterious reason, we need latest pip to install dependencies,
-    #     but need the old pip to run the setup.py
-    #     hence the setup.py setup is out of the with scope
     log.info("installing python dependencies")
-
-    with with_upgraded_pip():
-        run([
-            "pip", "install",
-            "--upgrade",
-            "-r", "requirements.txt"
-        ])
+    # we need a newer pip to do all the installation
+    upgrade_pip()
+    run([
+        "pip", "install",
+        "--upgrade",
+        "-r", "requirements.txt"
+    ])
 
     log.info("running setup.py")
     if os.name == "nt":
@@ -100,6 +97,7 @@ def psbody_validate_build():
 
 
 # main #
+
 
 if __name__ == '__main__':
     install_script_main(
