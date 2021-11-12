@@ -61,9 +61,11 @@ def install_building_dependencies():
     try:
         yield
     finally:
-        if not do_not_cleanup:
-            log.info("removing compiling dependencies: %s", str(dependencies_to_uninstall))
-            run(["conda", "uninstall", "-y", "-c", "conda-forge", *dependencies_to_uninstall])
+        pass
+        # note: it appears that removing cxx-compiler will break the install, so we had to keep it ¯\_(ツ)_/¯
+        # if not do_not_cleanup:
+        #     log.info("removing compiling dependencies: %s", str(dependencies_to_uninstall))
+        #     run(["conda", "uninstall", "-y", "-c", "conda-forge", *dependencies_to_uninstall])
 
 
 def install_boost():
