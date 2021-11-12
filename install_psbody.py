@@ -390,7 +390,7 @@ def fetch_version_and_links():
 
     log.debug("selected version: %s, fullnames: %s", str(selected_version), str(selected_fullnames))
 
-    if selected_version[0] == "cp36":
+    if "‑cp36‑" in selected_fullnames[0]:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/py36/%s"
     else:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s"
