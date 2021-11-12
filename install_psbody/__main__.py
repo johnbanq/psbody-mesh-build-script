@@ -85,6 +85,7 @@ def psbody_validate_build():
             run(["python", "-m", "unittest", "-v"])
         else:
             run(["make", "tests"])
+
         log.info("all test passed, installation successful!")
 
 
