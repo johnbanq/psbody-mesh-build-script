@@ -104,9 +104,9 @@ def detect_conda_environment():
         raise e
 
     lines = result.stdout.decode(encoding=sys.getdefaultencoding()).splitlines()
-    lines = [re.match("active environment : (?P<environment>.*)", line) for line in lines]
+    lines = [re.match("active environment : (?P<environment>.*)", line.strip()) for line in lines]
     lines = [line for line in lines if line]
-    assert len(lines) == 1, "exactly active environment line expected, but got %i !" % len(lines)
+    assert len(lines) == 1, "exactly 1 active environment line expected, but got %i !" % len(lines)
     env_name = lines[0].group("environment").strip()
 
     log.debug("detected environment name: %s", env_name)
@@ -303,12 +303,13 @@ def with_upgraded_pip():
 
 
 def psbody_validate_build():
-    log.info("running tests")
-    if os.name == "nt":
-        run(["python", "-m", "unittest", "-v"])
-    else:
-        run(["make", "tests"])
-    log.info("all test passed, installation successful!")
+    with inside_git_repository(repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR):
+        log.info("running tests")
+        if os.name == "nt":
+            run(["python", "-m", "unittest", "-v"])
+        else:
+            run(["make", "tests"])
+        log.info("all test passed, installation successful!")
 
 
 # main #
