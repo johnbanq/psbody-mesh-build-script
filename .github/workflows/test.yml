@@ -1,4 +1,4 @@
-name: windows/linux python3.5-3.9 installation test
+name: installation test
 
 on:
   push:
