@@ -6,14 +6,15 @@ import os
 import re
 import shutil
 import subprocess
+import sys
+from glob import glob
 from logging import getLogger
 
-
 # logger #
-
+from tempfile import TemporaryFile, NamedTemporaryFile
+from typing import List
 
 log = getLogger("install_psbody")
-
 
 # global variables #
 
@@ -40,6 +41,35 @@ def run(*args, **kwargs):
         raise e
 
 
+TMP_TRAMPOLINE_SCRIPT_NAME = "trampoline.sh"
+
+
+def run_after_conda_activate(commands: List[str]):
+    """
+    force to run in conda environment as we are updating environ in conda install
+    """
+    try:
+        with open(TMP_TRAMPOLINE_SCRIPT_NAME, "w") as f:
+            log.debug("writing trampoline script: %s", f.name)
+
+            f.write("#!/usr/bin/env bash\n")
+
+            activate_scripts = os.path.join(os.environ["CONDA_PREFIX"], "etc", "conda", "activate.d")
+            for script in glob(os.path.join(activate_scripts, "*.sh")):
+                log.debug("activate script: %s", script)
+                f.write("source "+script + "\n")
+
+            command = " ".join(commands)
+            log.debug("command: %s", command)
+            f.write(command + "\n")
+
+        run(["chmod", "+x", TMP_TRAMPOLINE_SCRIPT_NAME])
+        run(["./"+TMP_TRAMPOLINE_SCRIPT_NAME])
+    finally:
+        if not do_not_cleanup and os.path.exists(TMP_TRAMPOLINE_SCRIPT_NAME):
+            os.unlink(TMP_TRAMPOLINE_SCRIPT_NAME)
+
+
 def check_is_in_conda_environment():
     log.info("checking is in conda environment")
     prefix = os.getenv("CONDA_PREFIX")
@@ -52,9 +82,9 @@ def check_is_in_conda_environment():
 
 
 @contextlib.contextmanager
-def install_building_dependencies():
-    dependencies = ["cxx-compiler", "setuptools", "libgomp"]
-    dependencies_to_uninstall = list(set(dependencies) - {"setuptools", "libgomp"})
+def install_compiling_dependencies():
+    dependencies = ["cxx-compiler", "setuptools"]
+    dependencies_to_uninstall = []
 
     log.info("installing compiling dependencies: %s", str(dependencies))
     run(["conda", "install", "-y", "-c", "conda-forge", *dependencies])
@@ -105,7 +135,7 @@ def with_upgraded_pip():
     matches = [m for m in result.stdout.decode("UTF-8").splitlines()]
     matches = [re.match(r"pip +(?P<version>\S+\.\S+\.\S+)", m) for m in matches]
     matches = [m for m in matches if m]
-    assert len(matches) == 1,\
+    assert len(matches) == 1, \
         "there must be exactly one pip in listed installed packages, found %i!" % len(matches)
     version = matches[0].group("version").strip()
 
@@ -152,14 +182,19 @@ def test_package():
     run(["make", "tests"])
 
 
-def main():
+def stage1():
     check_is_in_conda_environment()
+    with install_compiling_dependencies():
+        log.info("compile dependencies ready, entering stage2 with updated conda environment")
+        run_after_conda_activate(["python", *sys.argv, "--stage2"])
 
-    with install_building_dependencies():
-        install_boost()
-        install_pyopengl()
-        with download_and_cd_into_repo():
-            build_install_package()
+
+def stage2():
+    log.info("stage 2 started")
+    install_boost()
+    install_pyopengl()
+    with download_and_cd_into_repo():
+        build_install_package()
 
     test_package()
 
@@ -177,6 +212,10 @@ if __name__ == '__main__':
         '--verbose', action='store_true',
         help='print debug log along the way'
     )
+    parser.add_argument(
+        '--stage2', action='store_true',
+        help='INTERNAL FLAG: DO NOT TOUCH, used to rerun script in updated conda environment'
+    )
     args = parser.parse_args()
 
     # apply arguments #
@@ -187,4 +226,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO)
 
     # run #
-    main()
+    if not args.stage2:
+        stage1()
+    else:
+        stage2()
