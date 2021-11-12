@@ -14,9 +14,13 @@ jobs:
         os: ["ubuntu-latest", "windows-latest"]
         python-version: ["3.5", "3.6", "3.7", "3.8", "3.9"]
     steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: prepare conda environment
+        uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      - run: python install_psbody.py --verbose
+      - name: run script
+        shell: bash -l {0}
+        run: python install_psbody.py --verbose
