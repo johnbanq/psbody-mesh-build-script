@@ -157,7 +157,7 @@ def parse_conda_info(key: str):
     :rtype: str
     """
     try:
-        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True, shell=True)
+        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True)
     except subprocess.CalledProcessError as e:
         log.fatal("could not run conda info, do you have conda installed?")
         raise e
@@ -308,14 +308,14 @@ def install_compiling_dependencies():
     dependencies = ["cxx-compiler", "setuptools"]
 
     log.info("installing compiling dependencies: %s", str(dependencies))
-    run(["conda", "install", "-y", "-c", "conda-forge", *dependencies], shell=True)
+    run(["conda", "install", "-y", "-c", "conda-forge", *dependencies])
 
     yield
 
 
 def install_boost():
     log.info("installing boost")
-    run(["conda", "install", "-y", "boost"], shell=True)
+    run(["conda", "install", "-y", "boost"])
 
 
 def install_pyopengl():
