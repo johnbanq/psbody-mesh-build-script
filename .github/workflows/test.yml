@@ -19,4 +19,4 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      - run: python -m install_psbody.py
+      - run: python install_psbody.py
