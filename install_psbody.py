@@ -388,11 +388,16 @@ def fetch_version_and_links():
         raise ValueError("could not find installable version!")
 
     log.debug("selected version: %s, fullnames: %s", str(selected_version), str(selected_fullnames))
+
+    if selected_version[0] == "cp36":
+        download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/py36/%s"
+    else:
+        download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s"
     return (
         version,
         (
-            "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s" % selected_fullnames[0].replace("‑", "-"),
-            "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s" % selected_fullnames[1].replace("‑", "-"),
+            download_template % selected_fullnames[0].replace("‑", "-"),
+            download_template % selected_fullnames[1].replace("‑", "-"),
         )
     )
 
