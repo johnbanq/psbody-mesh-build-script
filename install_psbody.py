@@ -8,7 +8,6 @@ import shutil
 import stat
 import subprocess
 import sys
-import urllib.request
 from logging import getLogger
 from typing import List
 
@@ -158,7 +157,7 @@ def parse_conda_info(key: str):
     :rtype: str
     """
     try:
-        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True)
+        result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True, shell=True)
     except subprocess.CalledProcessError as e:
         log.fatal("could not run conda info, do you have conda installed?")
         raise e
@@ -306,14 +305,14 @@ def install_compiling_dependencies():
     dependencies = ["cxx-compiler", "setuptools"]
 
     log.info("installing compiling dependencies: %s", str(dependencies))
-    run(["conda", "install", "-y", "-c", "conda-forge", *dependencies])
+    run(["conda", "install", "-y", "-c", "conda-forge", *dependencies], shell=True)
 
     yield
 
 
 def install_boost():
     log.info("installing boost")
-    run(["conda", "install", "-y", "boost"])
+    run(["conda", "install", "-y", "boost"], shell=True)
 
 
 def install_pyopengl():
@@ -492,6 +491,7 @@ def with_upgraded_pip():
 
 
 def psbody_validate_build():
+    log.info("running tests")
     with inside_git_repository(
             repo_url=REPO_URL, repo_hash=REPO_REVISION, dir_name=REPO_DIR,
             cleanup=not do_not_cleanup
