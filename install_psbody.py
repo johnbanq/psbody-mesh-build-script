@@ -8,6 +8,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import urllib.request
 from logging import getLogger
 from typing import List
 
@@ -17,6 +18,8 @@ from typing import List
 log = getLogger("install_script")
 
 do_not_cleanup = False
+
+yes_everything = False
 
 
 # infrastructure #
@@ -54,7 +57,7 @@ def install_script_main(
     note: and it is done by using a trampoline script,
     note: and indicating its in reactivated environment by additional environment
     """
-    global do_not_cleanup
+    global do_not_cleanup, yes_everything
 
     # parse arguments #
     parser = argparse.ArgumentParser(description='%s installation script' % package_name)
@@ -68,6 +71,10 @@ def install_script_main(
         help='print debug log along the way'
     )
     parser.add_argument(
+        '--yes', action='store_true',
+        help='say yes to all options in the install'
+    )
+    parser.add_argument(
         '--environment', type=str, default="prepare_environment",
         help='INTERNAL FLAG: DO NOT TOUCH, used to indicate reactivated environment'
     )
@@ -75,6 +82,7 @@ def install_script_main(
 
     # apply arguments #
     do_not_cleanup = args.no_cleanup
+    yes_everything = args.yes
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -152,7 +160,7 @@ def parse_conda_info(key: str):
     try:
         result = subprocess.run(["conda", "info"], stdout=subprocess.PIPE, check=True)
     except subprocess.CalledProcessError as e:
-        log.fatal("could not run conda info, do you have conda installed at all?")
+        log.fatal("could not run conda info, do you have conda installed?")
         raise e
 
     lines = result.stdout.decode(encoding=sys.getdefaultencoding()).splitlines()
@@ -310,8 +318,120 @@ def install_boost():
 
 def install_pyopengl():
     log.info("installing pyopengl")
-    run(["pip", "install", "pyopengl"])
+    if os.name == "nt":
+        log.info("running windows, installing from https://www.lfd.uci.edu/~gohlke/pythonlibs/")
+        if get_pyopengl_version():
+            log.warning("pyopengl is already installed in this environment, skipping")
+            return
 
+        version, (gl_link, accel_link) = fetch_version_and_links()
+        log.info("installing version %s", version)
+        run(["pip", "install", gl_link])
+        run(["pip", "install", accel_link])
+    else:
+        run(["pip", "install", "pyopengl"])
+
+
+def fetch_version_and_links():
+    """
+    returns the selected version and links (version, (pyopengl_link), (accelerate_link))
+    :rtype: Tuple[str, Tuple[str, str]]
+    """
+    # TODO: build a proper fetching logic for it
+    pyopengl_versions = [
+        ('PyOpenGL‑3.1.5‑pp37‑pypy37_pp73‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑pp37‑pypy37_pp73‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp310‑cp310‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp310‑cp310‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp310‑cp310‑win32.whl'),
+        ('PyOpenGL‑3.1.5‑cp39‑cp39‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp39‑cp39‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp39‑cp39‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp39‑cp39‑win32.whl'),
+        ('PyOpenGL‑3.1.5‑cp38‑cp38‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp38‑cp38‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp38‑cp38‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp38‑cp38‑win32.whl'),
+        ('PyOpenGL‑3.1.5‑cp37‑cp37m‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp37‑cp37m‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp37‑cp37m‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp37‑cp37m‑win32.whl'),
+        ('PyOpenGL‑3.1.5‑cp36‑cp36m‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp36‑cp36m‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp36‑cp36m‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp36‑cp36m‑win32.whl'),
+        ('PyOpenGL‑3.1.5‑cp35‑cp35m‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp35‑cp35m‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp35‑cp35m‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp35‑cp35m‑win32.whl'),
+        ('PyOpenGL‑3.1.5‑cp27‑cp27m‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.5‑cp27‑cp27m‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.5‑cp27‑cp27m‑win32.whl', 'PyOpenGL_accelerate‑3.1.5‑cp27‑cp27m‑win32.whl'),
+        ('PyOpenGL‑3.1.3b2‑cp34‑cp34m‑win_amd64.whl', 'PyOpenGL_accelerate‑3.1.3b2‑cp34‑cp34m‑win_amd64.whl'),
+        ('PyOpenGL‑3.1.3b2‑cp34‑cp34m‑win32.whl', 'PyOpenGL_accelerate‑3.1.3b2‑cp34‑cp34m‑win32.whl')
+    ]
+
+    # figure out a version we can use
+    supported_tags = set(get_compatible_tags())
+
+    selected_version = None
+    selected_fullnames = None
+    for fullname, accel_fullname in pyopengl_versions:
+        name, version, *tags = fullname[:-len(".whl")].split("‑")
+        accel_name, accel_version, *accel_tags = accel_fullname[:-len(".whl")].split("‑")
+        assert tags == accel_tags  # already manually checked, but just in case
+
+        tags = tuple(tags)
+        if tags in supported_tags:
+            selected_version = version
+            selected_fullnames = fullname, accel_fullname
+            break
+
+    else:
+        log.fatal("cannot find compatible unofficial windows binaries!")
+        raise ValueError("could not find installable version!")
+
+    log.debug("selected version: %s, fullnames: %s", str(selected_version), str(selected_fullnames))
+    return (
+        version,
+        (
+            "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s" % selected_fullnames[0].replace("‑", "-"),
+            "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s" % selected_fullnames[1].replace("‑", "-"),
+        )
+    )
+
+
+def get_pyopengl_version():
+    """
+    get version of pyopengl installed, None if not
+    """
+    try:
+        # right way to do it
+        import importlib.metadata
+        try:
+            return importlib.metadata.version("PyOpenGL")
+        except importlib.metadata.PackageNotFoundError:
+            return None
+    except ImportError:
+        # hacks
+        try:
+            from pip._internal.utils.misc import get_installed_distributions
+        except ImportError:  # pip<10
+            from pip import get_installed_distributions
+
+        installed_packages = get_installed_distributions()
+        installed_packages_list = sorted(["%s==%s" % (i.key, i.version) for i in installed_packages])
+
+        for pkg in installed_packages_list:
+            if pkg.lower().startswith("pyopengl=="):
+                return pkg[len("pyopengl=="):]
+        else:
+            return None
+
+
+def get_compatible_tags():
+    result = subprocess.run(["python", "-m", "pip", "debug", "--verbose"], stdout=subprocess.PIPE, check=True)
+
+    lines = result.stdout.decode("UTF-8").splitlines()
+    while not lines[0].startswith("Compatible tags:"):
+        lines.pop(0)
+    assert len(lines) > 1, "there must be at least 1 compatible tags!"
+    lines.pop(0)
+
+    result = []
+    for line in lines:
+        line = line.strip()
+        if line:
+            result.append(tuple(line.split("-")))
+
+    return result
 
 # execute build #
 
