@@ -392,6 +392,8 @@ def fetch_version_and_links():
 
     if "‑cp36‑" in selected_fullnames[0]:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/cp36/%s"
+    elif "‑cp35‑" in selected_fullnames[0]:
+        download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/cp35/%s"
     else:
         download_template = "https://download.lfd.uci.edu/pythonlibs/w6tyco5e/%s"
     return (
